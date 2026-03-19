@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+.gitignore
+.dockerignore
+package-lock.json (ignore this if you want to use npm install without it, but usually we keep it for deterministic builds)
+Actually, we SHOULD keep package-lock.json for the build context but ignore it from the local if needed.
+Wait, standard .dockerignore for Vite:
+node_modules
+dist
+.git
+.vscode
+.idea
+*.log
