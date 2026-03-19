@@ -1,3 +1,5 @@
+import './style.css';
+
 // --- UTILIDADES ---
 function showToast(message, type = 'success') {
     let container = document.getElementById('toast-container');
@@ -391,7 +393,7 @@ loginForm.addEventListener('submit', async (e) => {
         checkSession();
         loginModal.style.display = 'none';
         loginForm.reset();
-        alert(`¡Bienvenido de nuevo, ${data.firstName}!`);
+        showToast(`Hola ${data.firstName}, es un gusto verte de nuevo.`, 'info');
     } catch (err) {
         loginError.style.display = 'block';
         setTimeout(() => loginError.style.display = 'none', 3000);
