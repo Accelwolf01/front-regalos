@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - GiftMagic</title>
+    <link rel="stylesheet" href="/src/style.css">
+    <style>
+        body { background: #f8f9fa; }
+        .admin-nav { background: white; padding: 1rem 5%; box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        .admin-container { padding: 3rem 5%; display: grid; grid-template-columns: 250px 1fr; gap: 2rem; }
+        .sidebar { background: white; padding: 2rem; border-radius: 20px; box-shadow: var(--shadow); height: fit-content; position: sticky; top: 100px; }
+        .sidebar ul { list-style: none; display: flex; flex-direction: column; gap: 1rem; }
+        .sidebar a { text-decoration: none; color: var(--text-muted); font-weight: 500; transition: 0.3s; cursor: pointer; }
+        .sidebar a:hover, .sidebar a.active { color: var(--primary); }
+        .main-content { background: white; padding: 2rem; border-radius: 20px; box-shadow: var(--shadow); min-height: 600px; }
+        
+        .section { display: none; }
+        .section.active { display: block; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid #eee; font-size: 0.85rem; }
+        th { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .badge { padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.7rem; font-weight: 600; }
+        .badge-success { background: #e8f5e9; color: #2e7d32; }
+        .badge-danger { background: #ffebee; color: #c62828; }
+
+        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+        .admin-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        
+        .form-group { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .form-group label { font-weight: 600; font-size: 0.85rem; }
+        .form-group input, .form-group select, .form-group textarea { padding: 0.7rem; border: 1px solid #ddd; border-radius: 10px; font-family: inherit; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: center; justify-content: center; }
+        .generic-modal { background: white; padding: 2rem; border-radius: 20px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        
+        .image-preview-container { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+        .image-preview { width: 60px; height: 60px; border-radius: 10px; object-fit: cover; border: 1px solid #ddd; position: relative; }
+        .image-preview button { position: absolute; top: -5px; right: -5px; background: #ff4d4d; color: white; border: none; border-radius: 50%; width: 18px; height: 18px; cursor: pointer; font-size: 10px; }
+    </style>
+</head>
+<body>
+    <nav class="admin-nav">
+        <h1 style="font-size: 1.4rem; color: var(--primary); font-weight: 800;">GiftMagic <span style="font-weight: 300;">Admin</span></h1>
+        <div style="display: flex; align-items: center; gap: 1.5rem;">
+            <div style="text-align: right;">
+                <div id="admin-name" style="font-weight: 600; color: var(--text);">Administrador</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">Acceso Total</div>
+            </div>
+            <button onclick="logout()" class="btn-primary btn-sm" style="background: #f5f5f5; color: var(--text); border: 1px solid #ddd;">Cerrar Sesión</button>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <aside class="sidebar">
+            <ul>
+                <li><a onclick="showSection('dashboard')" id="nav-dashboard" class="active">📊 Resumen</a></li>
+                <li><a onclick="showSection('orders')" id="nav-orders">📦 Pedidos</a></li>
+                <li><a onclick="showSection('products')" id="nav-products">🎁 Productos</a></li>
+                <li><a onclick="showSection('suppliers')" id="nav-suppliers">🤝 Proveedores</a></li>
+                <li><a onclick="showSection('categories')" id="nav-categories">📁 Categorías</a></li>
+                <li><a onclick="showSection('cities')" id="nav-cities">🚚 Envíos</a></li>
+                <li><a onclick="showSection('banners')" id="nav-banners">🖼️ Banners</a></li>
+                <li><a onclick="showSection('users')" id="nav-users">👥 Usuarios</a></li>
+                <li><a onclick="showSection('settings')" id="nav-settings">⚙️ Configuración</a></li>
+                <li><a href="/">🏠 Tienda</a></li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <!-- Dashboard -->
+            <div id="section-dashboard" class="section active">
+                <h2 style="margin-bottom: 2rem;">📊 Resumen de Negocio</h2>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; background: white; padding: 1.5rem; border-radius: 15px; box-shadow: var(--shadow);">
+                    <div style="display: flex; gap: 1rem; align-items: flex-end;">
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.75rem;">Desde</label>
+                            <input type="date" id="rep-start" style="padding: 0.5rem;">
+                        </div>
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label style="font-size: 0.75rem;">Hasta</label>
+                            <input type="date" id="rep-end" style="padding: 0.5rem;">
+                        </div>
+                        <button onclick="loadFinancials()" class="btn-primary" style="padding: 0.6rem 1.5rem;">Filtrar</button>
+                    </div>
+                    <button onclick="exportToExcel()" class="btn-primary" style="background: #2e7d32; padding: 0.6rem 1.5rem;">📗 Exportar a Excel</button>
+                </div>
+
+                <div id="dashboard-stats" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem;">
+                    <div style="padding: 2rem; background: linear-gradient(135deg, #fff5f8 0%, #ffffff 100%); border-radius: 20px; text-align: center; border: 1px solid var(--primary)22; box-shadow: var(--shadow);">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">💰</div>
+                        <span style="color: #888; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">Ventas Brutas</span>
+                        <div id="total-sales" style="font-size: 2rem; font-weight: 800; color: var(--primary); margin-top: 0.5rem;">$0</div>
+                    </div>
+                    <div style="padding: 2rem; background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%); border-radius: 20px; text-align: center; border: 1px solid #2e7d3222; box-shadow: var(--shadow);">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📈</div>
+                        <span style="color: #888; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">Utilidad Neta</span>
+                        <div id="net-profit" style="font-size: 2rem; font-weight: 800; color: #2e7d32; margin-top: 0.5rem;">$0</div>
+                    </div>
+                    <div style="padding: 2rem; background: linear-gradient(135deg, #f0f7ff 0%, #ffffff 100%); border-radius: 20px; text-align: center; border: 1px solid #00408522; box-shadow: var(--shadow);">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🛍️</div>
+                        <span style="color: #888; font-size: 0.85rem; font-weight: 600; text-transform: uppercase;">Pedidos</span>
+                        <div id="order-count" style="font-size: 2rem; font-weight: 800; color: #004085; margin-top: 0.5rem;">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usuarios -->
+            <div id="section-users" class="section">
+                <h2>Gestión de Usuarios</h2>
+                <table id="users-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Rol</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-tbody"></tbody>
+                </table>
+            </div>
+
+            <!-- Configuración -->
+            <div id="section-settings" class="section">
+                <h2>Configuración de la Tienda</h2>
+                <form id="settings-form" style="margin-top: 2rem; max-width: 800px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div>
+                            <h3 style="margin-bottom: 1rem; font-size: 1rem; color: var(--primary);">Información General</h3>
+                            <div class="form-group"><label>Nombre de la Tienda</label><input type="text" id="setting-store_name"></div>
+                            <div class="form-group"><label>Dirección Física</label><input type="text" id="setting-store_address"></div>
+                            <div class="form-group"><label>Teléfono de Contacto</label><input type="text" id="setting-store_phone"></div>
+                            <div class="form-group"><label>Email de Soporte</label><input type="email" id="setting-store_email"></div>
+                        </div>
+                        <div>
+                            <h3 style="margin-bottom: 1rem; font-size: 1rem; color: var(--primary);">Redes Sociales</h3>
+                            <div class="form-group"><label>Instagram (URL)</label><input type="text" id="setting-social_instagram"></div>
+                            <div class="form-group"><label>WhatsApp (Link)</label><input type="text" id="setting-social_whatsapp"></div>
+                            <div class="form-group"><label>Facebook (URL)</label><input type="text" id="setting-social_facebook"></div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 2rem; padding: 1.5rem; background: #f0f7ff; border-radius: 15px; border: 1px solid #cce5ff;">
+                        <h3 style="margin-bottom: 1rem; font-size: 1rem; color: #004085;">Pasarela de Pagos (Bold)</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <div class="form-group"><label>API Key (Pública)</label><input type="password" id="setting-bold_api_key"></div>
+                            <div class="form-group"><label>Secret Key (Integridad)</label><input type="password" id="setting-bold_secret_key"></div>
+                        </div>
+                        <p style="font-size: 0.75rem; color: #666; margin-top: 0.5rem;">⚠️ Estas llaves son críticas para procesar pagos reales. No las compartas.</p>
+                    </div>
+
+                    <button type="submit" class="btn-primary" style="margin-top: 2rem; padding: 1rem 3rem;">Guardar Configuración</button>
+                </form>
+            </div>
+
+            <!-- Pedidos -->
+            <div id="section-orders" class="section">
+                <h2>Pedidos Realizados</h2>
+                <table id="orders-table">
+                    <thead>
+                        <tr><th>ID</th><th>Cliente</th><th>Total</th><th>Estado</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="orders-tbody"></tbody>
+                </table>
+            </div>
+
+            <!-- Productos -->
+            <div id="section-products" class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>Productos</h2>
+                    <button class="btn-primary" onclick="openProductModal()">+ Nuevo</button>
+                </div>
+                <table id="products-table">
+                    <thead>
+                        <tr><th>IMG</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="products-tbody"></tbody>
+                </table>
+            </div>
+
+            <!-- Proveedores -->
+            <div id="section-suppliers" class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>Proveedores</h2>
+                    <button class="btn-primary" onclick="openSupplierModal()">+ Nuevo Proveedor</button>
+                </div>
+                <table id="suppliers-table">
+                    <thead>
+                        <tr><th>Nombre</th><th>Responsable</th><th>Teléfono</th><th>Email</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="suppliers-tbody"></tbody>
+                </table>
+            </div>
+
+            <!-- Categorías -->
+            <div id="section-categories" class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>Categorías</h2>
+                    <button class="btn-primary" onclick="openCategoryModal()">+ Nueva</button>
+                </div>
+                <table id="categories-table">
+                    <thead>
+                        <tr><th>Nombre</th><th>Habilitado</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="categories-tbody"></tbody>
+                </table>
+            </div>
+
+            <!-- Banners -->
+            <div id="section-banners" class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>Banners del Carrusel (Max 5)</h2>
+                    <button class="btn-primary" onclick="openBannerModal()" id="add-banner-btn">+ Nuevo Banner</button>
+                </div>
+                <div id="banners-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem;">
+                    <!-- Banners se cargan aquí -->
+                </div>
+            </div>
+
+            <!-- Ciudades -->
+            <div id="section-cities" class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h2>Ciudades</h2>
+                    <button class="btn-primary" onclick="openCityModal()">+ Nueva</button>
+                </div>
+                <table id="cities-table">
+                    <thead>
+                        <tr><th>Departamento</th><th>Ciudad</th><th>Costo</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody id="cities-tbody"></tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modales -->
+    <div id="modal-container" class="modal-overlay" onclick="if(event.target === this) closeModal()">
+        <div id="modal-content" class="generic-modal"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api';
+        const token = localStorage.getItem('gift_token');
+        const user = JSON.parse(localStorage.getItem('gift_user'));
+        if (!token || !user || user.role !== 'SUPER_ADMIN') window.location.href = '/';
+        
+        // --- UTILIDADES ---
+        function showToast(message, type = 'success') {
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                document.body.appendChild(container);
+            }
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            const icon = type === 'success' ? '✅' : (type === 'error' ? '❌' : 'ℹ️');
+            toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.animation = 'slideOut 0.5s forwards';
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+        }
+
+        // Mensaje de Bienvenida
+        showToast(`¡Bienvenido de nuevo, ${user.firstName}!`, 'info');
+
+        document.getElementById('admin-name').innerText = user.firstName;
+
+        let currentProductImages = [];
+
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(`section-${id}`).classList.add('active');
+            document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+            document.getElementById(`nav-${id}`).classList.add('active');
+            
+            if(id === 'dashboard') loadFinancials();
+            if(id === 'users') loadUsers();
+            if(id === 'orders') loadOrders();
+            if(id === 'products') loadProducts();
+            if(id === 'categories') loadCategories();
+            if(id === 'cities') loadCities();
+            if(id === 'settings') loadSettings();
+            if(id === 'banners') loadBanners();
+            if(id === 'suppliers') loadSuppliers();
+        }
+
+        function closeModal() { document.getElementById('modal-container').style.display = 'none'; currentProductImages = []; }
+
+        async function api(p, m = 'GET', b = null) {
+            const opts = { method: m, headers: { 'Authorization': `Bearer ${token}` } };
+            if (b) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(b); }
+            const r = await fetch(`${API_BASE}${p}`, opts);
+            if(r.status === 401) logout();
+            return r;
+        }
+
+        // --- CONFIGURACIÓN ---
+        async function loadSettings() {
+            const r = await api('/settings/admin');
+            if(!r.ok) return;
+            const settings = await r.json();
+            settings.forEach(s => {
+                const el = document.getElementById(`setting-${s.configKey}`);
+                if(el) el.value = s.configValue;
+            });
+        }
+
+        document.getElementById('settings-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const keys = ['store_name', 'store_address', 'store_phone', 'store_email', 'social_instagram', 'social_whatsapp', 'social_facebook', 'bold_api_key', 'bold_secret_key'];
+            const data = keys.map(k => ({
+                configKey: k,
+                configValue: document.getElementById(`setting-${k}`).value,
+                configGroup: k.startsWith('social_') ? 'SOCIAL' : (k.startsWith('bold_') ? 'PAYMENT' : 'GENERAL')
+            }));
+            const r = await api('/settings/admin', 'PUT', data);
+            if(r.ok) showToast('Configuración guardada correctamente');
+        };
+
+        // --- USUARIOS ---
+        async function loadUsers() {
+            const [uR, rR] = await Promise.all([api('/admin/users'), api('/admin/roles')]);
+            const users = await uR.json();
+            const roles = await rR.json();
+            document.getElementById('users-tbody').innerHTML = users.map(u => `
+                <tr>
+                    <td>${u.firstName} ${u.lastName}</td>
+                    <td>${u.email}</td>
+                    <td>
+                        <select onchange="changeRole(${u.id}, this.value)">
+                            ${roles.map(r => `<option value="${r.id}" ${u.role?.id === r.id ? 'selected' : ''}>${r.name}</option>`).join('')}
+                        </select>
+                    </td>
+                    <td><span class="badge ${u.isActive ? 'badge-success' : 'badge-danger'}">${u.isActive ? 'Activo' : 'Inactivo'}</span></td>
+                    <td class="admin-actions">
+                        <button onclick="resetPassPrompt(${u.id})" class="btn-primary btn-sm" style="background:#555">Clave</button>
+                        <button onclick="deactivateUser(${u.id})" class="btn-primary btn-sm" style="background:#ff4d4d">Desact.</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function changeRole(uid, rid) { await api(`/admin/users/${uid}/role/${rid}`, 'PUT'); showToast('Rol actualizado'); }
+        async function deactivateUser(uid) { if(confirm('¿Desactivar usuario?')) { await api(`/admin/users/${uid}/deactivate`, 'PUT'); loadUsers(); } }
+        function resetPassPrompt(uid) {
+            const newPass = prompt('Ingrese nueva contraseña:');
+            if(newPass) api(`/admin/users/${uid}/reset-password`, 'PUT', { password: newPass }).then(r => showToast('Contraseña actualizada'));
+        }
+
+        // --- PRODUCTOS ---
+        async function loadProducts() {
+            const r = await api('/admin/products');
+            const prods = await r.json();
+            document.getElementById('products-tbody').innerHTML = prods.map(p => `
+                <tr>
+                    <td><img src="${p.images?.[0]?.imageBase64 || '/placeholder.png'}" style="width:35px;height:35px;object-fit:cover;border-radius:5px"></td>
+                    <td>${p.name}</td>
+                    <td>$${p.price.toLocaleString()}</td>
+                    <td>${p.stock}</td>
+                    <td class="admin-actions">
+                        <button onclick='editProduct(${JSON.stringify(p).replace(/'/g, "&apos;")})' class="btn-primary btn-sm">Editar</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function openProductModal(p = null) {
+            const [cR, sR] = await Promise.all([api('/admin/categories'), api('/admin/suppliers')]);
+            const cats = await cR.json();
+            const sups = await sR.json();
+            currentProductImages = p?.images || [];
+            document.getElementById('modal-content').innerHTML = `
+                <h3>${p ? 'Editar' : 'Nuevo'} Producto</h3>
+                <form id="p-form" style="margin-top:1rem">
+                    <div class="form-group"><label>Nombre</label><input type="text" id="p-name" value="${p?.name || ''}" required></div>
+                    <div class="form-group"><label>Descripción</label><textarea id="p-desc" required>${p?.description || ''}</textarea></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                        <div class="form-group"><label>Precio</label><input type="number" id="p-price" value="${p?.price || ''}" required></div>
+                        <div class="form-group"><label>Costo</label><input type="number" id="p-cost" value="${p?.costPrice || ''}" required></div>
+                        <div class="form-group"><label>Categoría</label><select id="p-cat">${cats.map(c => `<option value="${c.id}" ${p?.category?.id === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div>
+                        <div class="form-group"><label>Stock</label><input type="number" id="p-stock" value="${p?.stock || ''}" required></div>
+                        <div class="form-group"><label>Proveedor</label><select id="p-sup">${sups.map(s => `<option value="${s.id}" ${p?.supplier?.id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}</select></div>
+                    </div>
+                    <div class="form-group"><label>Imágenes (Max 3)</label><input type="file" onchange="uploadImg(this)"><div id="previews" class="image-preview-container"></div></div>
+                    <button type="submit" class="btn-primary" style="width:100%;margin-top:10px">Guardar Cambios</button>
+                </form>`;
+            renderPreviews();
+            document.getElementById('modal-container').style.display = 'flex';
+            document.getElementById('p-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const d = { 
+                    name: document.getElementById('p-name').value, 
+                    description: document.getElementById('p-desc').value,
+                    price: parseFloat(document.getElementById('p-price').value), 
+                    costPrice: parseFloat(document.getElementById('p-cost').value), 
+                    stock: parseInt(document.getElementById('p-stock').value), 
+                    isActive: true, 
+                    category: { id: parseInt(document.getElementById('p-cat').value) },
+                    supplier: { id: parseInt(document.getElementById('p-sup').value) },
+                    images: currentProductImages 
+                };
+                const r = await api(p ? `/admin/products/${p.id}` : '/admin/products', p ? 'PUT' : 'POST', d);
+                if(r.ok) { closeModal(); loadProducts(); showToast('Producto guardado'); } else { showToast('Error al guardar el producto', 'error'); }
+            };
+        }
+
+        function uploadImg(input) {
+            if(currentProductImages.length >= 3) return;
+            const file = input.files[0];
+            if(!file) return;
+            const fr = new FileReader();
+            fr.onload = (e) => { currentProductImages.push({ imageBase64: e.target.result, isMain: currentProductImages.length === 0, displayOrder: currentProductImages.length, isActive: true }); renderPreviews(); };
+            fr.readAsDataURL(file);
+        }
+        function renderPreviews() {
+            document.getElementById('previews').innerHTML = currentProductImages.map((img, i) => `<div class="image-preview"><img src="${img.imageBase64}" style="width:100%;height:100%;object-fit:cover;border-radius:8px"><button onclick="currentProductImages.splice(${i},1);renderPreviews()">X</button></div>`).join('');
+        }
+        function editProduct(p) { openProductModal(p); }
+
+        async function loadFinancials() { 
+            const start = document.getElementById('rep-start').value;
+            const end = document.getElementById('rep-end').value;
+            let url = '/admin/reports/financial';
+            if(start && end) url += `?startDate=${start}&endDate=${end}`;
+            
+            const r = await api(url); 
+            const d = await r.json(); 
+            document.getElementById('total-sales').innerText = `$${d.totalSales.toLocaleString()}`; 
+            document.getElementById('net-profit').innerText = `$${d.netProfit.toLocaleString()}`;
+            document.getElementById('order-count').innerText = d.orderCount;
+        }
+
+        async function exportToExcel() {
+            const start = document.getElementById('rep-start').value;
+            const end = document.getElementById('rep-end').value;
+            let url = '/admin/reports/orders/export';
+            if(start && end) url += `?startDate=${start}&endDate=${end}`;
+            
+            showToast('Generando reporte...', 'info');
+            const r = await api(url);
+            const orders = await r.json();
+            
+            if(orders.length === 0) return showToast('No hay datos para exportar', 'error');
+
+            let csv = "\uFEFF"; // BOM para Excel
+            csv += "ID Pedido;Fecha;Cliente;Doc;Tel;Dirección;Ciudad;Monto Total;Costo Total;Utilidad;Estado;Tracking\n";
+            
+            orders.forEach(o => {
+                const profit = o.totalAmount - (o.totalCostAmount || 0);
+                csv += `${o.id};${new Date(o.createdAt).toLocaleDateString()};${o.customer.firstName} ${o.customer.lastName};${o.customer.documentNumber};${o.customer.phone};${o.deliveryAddress};${o.deliveryCity?.name};${o.totalAmount};${o.totalCostAmount};${profit};${o.orderStatus?.name};${o.trackingCode}\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const fileName = `Reporte_Ventas_${start || 'Todo'}_${end || ''}.csv`;
+            link.href = URL.createObjectURL(blob);
+            link.setAttribute("download", fileName);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Reporte descargado');
+        }
+        let allOrders = [];
+        async function loadOrders() {
+            try {
+                const [oR, sR] = await Promise.all([api('/admin/orders'), api('/admin/statuses')]);
+                const text = await oR.text();
+                try {
+                    allOrders = JSON.parse(text);
+                } catch (e) {
+                    console.error('Error parseando pedidos. Texto recibido (primeros 500 chars):', text.substring(0, 500));
+                    console.error('Últimos 500 chars:', text.substring(text.length - 500));
+                    throw e;
+                }
+                const stats = await sR.json();
+                document.getElementById('orders-tbody').innerHTML = allOrders.map((o, idx) => `
+                    <tr>
+                        <td>#${o.id}</td>
+                        <td>${o.customer?.firstName || 'S/N'} ${o.customer?.lastName || ''}</td>
+                        <td>$${o.totalAmount.toLocaleString()}</td>
+                        <td><select onchange="updateOrderStatus(${o.id}, this.value)">${stats.map(s => `<option value="${s.id}" ${o.orderStatus?.id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}</select></td>
+                        <td><button onclick="viewOrder(${idx})" class="btn-primary btn-sm">Ver Detalles</button></td>
+                    </tr>`).join('');
+            } catch (err) {
+                console.error('Error en loadOrders:', err);
+                showToast('Error al cargar pedidos. Revisa la consola.', 'error');
+            }
+        }
+
+        function viewOrder(idx) {
+            const o = allOrders[idx];
+            document.getElementById('modal-content').innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:1rem; margin-bottom:1rem;">
+                    <h3>Detalles del Pedido #${o.id}</h3>
+                    <span class="badge ${o.paymentStatus === 'PAID' ? 'badge-success' : 'badge-danger'}">${o.paymentStatus}</span>
+                </div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2rem;">
+                    <div>
+                        <h4 style="color:var(--primary); font-size:0.9rem; border-bottom:1px solid #f0f0f0; padding-bottom:5px; margin-bottom:10px;">Cliente</h4>
+                        <p><strong>Nombre:</strong> ${o.customer?.firstName} ${o.customer?.lastName}</p>
+                        <p><strong>Doc:</strong> ${o.customer?.documentType} ${o.customer?.documentNumber}</p>
+                        <p><strong>Email:</strong> ${o.customer?.email}</p>
+                        <p><strong>Tel:</strong> ${o.customer?.phone}</p>
+                    </div>
+                    <div>
+                        <h4 style="color:var(--primary); font-size:0.9rem; border-bottom:1px solid #f0f0f0; padding-bottom:5px; margin-bottom:10px;">Entrega</h4>
+                        <p><strong>Ciudad:</strong> ${o.deliveryCity?.name} (${o.deliveryCity?.department})</p>
+                        <p><strong>Barrio:</strong> ${o.deliveryNeighborhood || 'No especificado'}</p>
+                        <p><strong>Dirección:</strong> ${o.deliveryAddress}</p>
+                        <p><strong>Fecha/Hora:</strong> ${new Date(o.deliveryDate).toLocaleDateString()} | ${o.deliveryTimeRange}</p>
+                    </div>
+                </div>
+
+                <div style="background:#f9f9f9; padding:1.5rem; border-radius:15px; margin-bottom:2rem;">
+                    <h4 style="color:var(--primary); font-size:0.9rem; margin-bottom:10px;">Información de Regalo</h4>
+                    <p><strong>De:</strong> ${o.giftSenderName || '-'}</p>
+                    <p><strong>Para:</strong> ${o.giftReceiverName || '-'}</p>
+                    <p><strong>Mensaje:</strong><br><span style="font-style:italic; color:#555;">"${o.giftMessage || 'Sin mensaje'}"</span></p>
+                </div>
+
+                <h4 style="color:var(--primary); font-size:0.9rem; margin-bottom:10px;">Productos</h4>
+                <table>
+                    <thead>
+                        <tr><th>Producto</th><th>Cant.</th><th>Subtotal</th></tr>
+                    </thead>
+                    <tbody>
+                        ${o.items.map(item => `
+                            <tr>
+                                <td>${item.productName}</td>
+                                <td>${item.quantity}</td>
+                                <td>$${item.subtotal.toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                    <tfoot>
+                        <tr><td colspan="2" style="text-align:right; font-weight:800;">Total:</td><td style="font-weight:800; color:var(--primary);">$${o.totalAmount.toLocaleString()}</td></tr>
+                    </tfoot>
+                </table>
+
+                <div style="margin-top:2rem; text-align:right;">
+                    <p style="font-size:0.8rem; color:#888; margin-bottom:10px;">Tracking: <strong>${o.trackingCode}</strong></p>
+                    <button onclick="closeModal()" class="btn-primary" style="background:#666;">Cerrar</button>
+                </div>
+            `;
+            document.getElementById('modal-container').style.display = 'flex';
+        }
+        async function updateOrderStatus(oi, si) { await api(`/admin/orders/${oi}/status/${si}`, 'PUT'); showToast('Estado del pedido actualizado'); }
+        let allCategories = [];
+        async function loadCategories() { 
+            const r = await api('/admin/categories'); 
+            allCategories = await r.json(); 
+            document.getElementById('categories-tbody').innerHTML = allCategories.map((t, idx) => `<tr><td>${t.name}</td><td>${t.isActive}</td><td><button onclick="openCategoryModal(${idx})" class="btn-primary btn-sm">Editar</button></td></tr>`).join(''); 
+        }
+        function openCategoryModal(idx = null) {
+            const t = idx !== null ? allCategories[idx] : null;
+            document.getElementById('modal-content').innerHTML = `<h3>${t ? 'Editar' : 'Nueva'} Categoría</h3><div class="form-group"><label>Nombre</label><input type="text" id="c-name" value="${t?.name || ''}"></div><button onclick="saveCat(${t?.id})" class="btn-primary" style="width:100%;margin-top:10px">Guardar</button>`;
+            document.getElementById('modal-container').style.display = 'flex';
+        }
+        function saveCat(id) { 
+            api(id ? `/admin/categories/${id}` : '/admin/categories', id ? 'PUT' : 'POST', { name: document.getElementById('c-name').value, isActive: true })
+            .then(() => { closeModal(); loadCategories(); showToast('Categoría guardada'); }); 
+        }
+
+        // --- CIUDADES ---
+        let allCities = [];
+        async function loadCities() { 
+            const r = await api('/admin/cities'); 
+            allCities = await r.json(); 
+            document.getElementById('cities-tbody').innerHTML = allCities.map((t, idx) => `<tr><td>${t.department}</td><td>${t.name}</td><td>$${t.deliveryCost}</td><td><button onclick="openCityModal(${idx})" class="btn-primary btn-sm">Editar</button></td></tr>`).join(''); 
+        }
+        function openCityModal(idx = null) {
+            const t = idx !== null ? allCities[idx] : null;
+            document.getElementById('modal-content').innerHTML = `<h3>${t ? 'Editar' : 'Nueva'} Ciudad</h3><div class="form-group"><label>Departamento</label><input type="text" id="cy-dep" value="${t?.department || ''}"></div><div class="form-group"><label>Ciudad</label><input type="text" id="cy-name" value="${t?.name || ''}"></div><div class="form-group"><label>Costo Envío</label><input type="number" id="cy-cost" value="${t?.deliveryCost || 0}"></div><button onclick="saveCity(${t?.id})" class="btn-primary" style="width:100%">Guardar</button>`;
+            document.getElementById('modal-container').style.display = 'flex';
+        }
+        function saveCity(id) { 
+            api(id ? `/admin/cities/${id}` : '/admin/cities', id ? 'PUT' : 'POST', { department: document.getElementById('cy-dep').value, name: document.getElementById('cy-name').value, deliveryCost: parseFloat(document.getElementById('cy-cost').value), isActive: true })
+            .then(() => { closeModal(); loadCities(); showToast('Ciudad guardada'); }); 
+        }
+
+        // --- PROVEEDORES ---
+        let allSuppliers = [];
+        async function loadSuppliers() {
+            const r = await api('/admin/suppliers');
+            if(!r.ok) return;
+            allSuppliers = await r.json();
+            document.getElementById('suppliers-tbody').innerHTML = allSuppliers.map((s, idx) => `
+                <tr>
+                    <td>${s.name}</td>
+                    <td>${s.contactName || '-'}</td>
+                    <td>${s.phone || '-'}</td>
+                    <td>${s.email || '-'}</td>
+                    <td class="admin-actions">
+                        <button onclick="openSupplierModal(${idx})" class="btn-primary btn-sm">Editar</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openSupplierModal(idx = null) {
+            const s = idx !== null ? allSuppliers[idx] : null;
+            document.getElementById('modal-content').innerHTML = `
+                <h3>${s ? 'Editar' : 'Nuevo'} Proveedor</h3>
+                <form id="s-form" style="margin-top:1rem">
+                    <div class="form-group"><label>Nombre Empresa</label><input type="text" id="s-name" value="${s?.name || ''}" required></div>
+                    <div class="form-group"><label>Responsable</label><input type="text" id="s-contact" value="${s?.contactName || ''}"></div>
+                    <div class="form-group"><label>Teléfono</label><input type="text" id="s-phone" value="${s?.phone || ''}"></div>
+                    <div class="form-group"><label>Correo</label><input type="email" id="s-email" value="${s?.email || ''}"></div>
+                    <div class="form-group"><label>Dirección</label><textarea id="s-address">${s?.address || ''}</textarea></div>
+                    <button type="submit" class="btn-primary" style="width:100%;margin-top:10px">Guardar Proveedor</button>
+                    ${s ? `<button type="button" onclick="deleteSupplier(${s.id})" class="btn-primary" style="width:100%;margin-top:10px;background:#ff4d4d">Desactivar</button>` : ''}
+                </form>
+            `;
+            document.getElementById('modal-container').style.display = 'flex';
+            document.getElementById('s-form').onsubmit = async (e) => {
+                e.preventDefault();
+                const d = {
+                    name: document.getElementById('s-name').value,
+                    contactName: document.getElementById('s-contact').value,
+                    phone: document.getElementById('s-phone').value,
+                    email: document.getElementById('s-email').value,
+                    address: document.getElementById('s-address').value,
+                    isActive: true
+                };
+                const r = await api(s ? `/admin/suppliers/${s.id}` : '/admin/suppliers', s ? 'PUT' : 'POST', d);
+                if(r.ok) { closeModal(); loadSuppliers(); showToast('Proveedor guardado'); } else { showToast('Error al guardar el proveedor', 'error'); }
+            };
+        }
+
+        async function deleteSupplier(id) { if(confirm('¿Desactivar este proveedor?')) { await api(`/admin/suppliers/${id}`, 'DELETE'); closeModal(); loadSuppliers(); } }
+
+        let allBanners = [];
+        async function loadBanners() {
+            const r = await api('/settings/admin/banners');
+            if(!r.ok) return;
+            allBanners = await r.json();
+            document.getElementById('banners-container').innerHTML = allBanners.map((b, idx) => `
+                <div style="background:#f9f9f9; padding:10px; border-radius:15px; border:1px solid #eee;">
+                    <img src="${b.imageBase64}" style="width:100%; height:100px; object-fit:cover; border-radius:10px; margin-bottom:10px;">
+                    <div style="font-weight:600; font-size:0.9rem;">${b.title}</div>
+                    <div style="font-size:0.75rem; color:#666;">${b.subtitle || ''}</div>
+                    <div class="admin-actions" style="margin-top:10px;">
+                        <button onclick="openBannerModal(${idx})" class="btn-primary btn-sm">Editar</button>
+                        <button onclick="deleteBanner(${b.id})" class="btn-primary btn-sm" style="background:#ff4d4d">Borrar</button>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('add-banner-btn').disabled = allBanners.length >= 5;
+        }
+
+        async function openBannerModal(idx = null) {
+            const b = idx !== null ? allBanners[idx] : null;
+            document.getElementById('modal-content').innerHTML = `
+                <h3>${b ? 'Editar' : 'Nuevo'} Banner</h3>
+                <form id="banner-form" style="margin-top:1rem">
+                    <div class="form-group"><label>Título</label><input type="text" id="b-title" value="${b?.title || ''}" required></div>
+                    <div class="form-group"><label>Subtítulo</label><input type="text" id="b-subtitle" value="${b?.subtitle || ''}"></div>
+                    <div class="form-group"><label>Orden</label><input type="number" id="b-order" value="${b?.displayOrder || 0}"></div>
+                    <div class="form-group">
+                        <label>Imagen</label>
+                        <input type="file" onchange="previewBanner(this)">
+                        <img id="banner-preview" src="${b?.imageBase64 || ''}" style="width:100%; height:150px; object-fit:cover; border-radius:10px; margin-top:10px; ${b?.imageBase64 ? '' : 'display:none;'}">
+                    </div>
+                    <button type="submit" class="btn-primary" style="width:100%; margin-top:10px">Guardar Banner</button>
+                </form>
+            `;
+            let base64 = b?.imageBase64 || '';
+            window.previewBanner = (input) => {
+                const file = input.files[0];
+                if(!file) return;
+                const fr = new FileReader();
+                fr.onload = (e) => { 
+                    base64 = e.target.result; 
+                    const img = document.getElementById('banner-preview');
+                    img.src = base64; img.style.display = 'block';
+                };
+                fr.readAsDataURL(file);
+            };
+            document.getElementById('modal-container').style.display = 'flex';
+            document.getElementById('banner-form').onsubmit = async (e) => {
+                e.preventDefault();
+                if(!base64) return alert('La imagen es obligatoria');
+                const data = {
+                    title: document.getElementById('b-title').value,
+                    subtitle: document.getElementById('b-subtitle').value,
+                    displayOrder: parseInt(document.getElementById('b-order').value),
+                    imageBase64: base64,
+                    isActive: true
+                };
+                const r = await api(b ? `/settings/admin/banners/${b.id}` : '/settings/admin/banners', b ? 'PUT' : 'POST', data);
+                if(r.ok) { closeModal(); loadBanners(); } else {
+                    const err = await r.json(); alert(err.error || 'Error al guardar banner');
+                }
+            };
+        }
+
+        async function deleteBanner(id) { if(confirm('¿Borrar banner?')) { await api(`/settings/admin/banners/${id}`, 'DELETE'); loadBanners(); } }
+
+        function logout() { localStorage.clear(); window.location.href = '/'; }
+        loadFinancials();
+    </script>
+</body>
+</html>
