@@ -45,8 +45,21 @@ loginModal.style.display = 'none'; // Asegurar oculto al inicio
 
 // --- LÓGICA DE PRODUCTOS ---
 async function loadProducts() {
+    let wakeUpTimer = setTimeout(() => {
+        productsGrid.innerHTML = `
+            <div class="waking-up-container" style="grid-column: 1/-1;">
+                <span class="loader"></span>
+                <h2>Preparando la tienda...</h2>
+                <p>El servidor de Render se está despertando. Esto puede tardar hasta 40 segundos en la primera visita.</p>
+                <div style="margin-top: 15px; font-size: 0.8rem; opacity: 0.7;">Por favor, no cierres la página.</div>
+            </div>
+        `;
+    }, 2000);
+
     try {
         const resp = await fetch(`${API_BASE}/products`);
+        clearTimeout(wakeUpTimer);
+        
         if (!resp.ok) throw new Error('Error al conectar con el servidor');
         const products = await resp.json();
         
@@ -57,12 +70,13 @@ async function loadProducts() {
 
         renderProducts(products);
     } catch (err) {
+        clearTimeout(wakeUpTimer);
         console.error(err);
         productsGrid.innerHTML = `
             <div style="grid-column: 1/-1; text-align: center; padding: 2rem; background: #fff; border-radius: 20px; box-shadow: var(--shadow);">
                 <p>⚠️ No pudimos conectar con el servidor de la tienda.</p>
                 <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 10px;">Asegúrate de que el backend esté corriendo en ${API_BASE}</p>
-                <button onclick="location.reload()" style="margin-top: 20px; padding: 0.8rem 1.5rem; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer;">Reintentar</button>
+                <button onclick="location.reload()" style="margin-top: 20px; padding: 0.8rem 1.5rem; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer;">Reintentar conectar</button>
             </div>
         `;
     }
