@@ -21,7 +21,7 @@ function showToast(message, type = 'success') {
 
 // --- ESTADO GLOBAL ---
 let cart = JSON.parse(localStorage.getItem('gift_cart')) || [];
-const API_BASE = 'https://back-regalos-uuuz.onrender.com/api';
+const API_BASE = 'https://back-regalos-jhah.onrender.com/api';
 
 // --- ELEMENTOS DEL DOM ---
 const productsGrid = document.getElementById('products-container');
