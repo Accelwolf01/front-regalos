@@ -408,11 +408,24 @@
         document.getElementById('settings-form').onsubmit = async (e) => {
             e.preventDefault();
             const keys = ['store_name', 'store_address', 'store_phone', 'store_email', 'social_instagram', 'social_whatsapp', 'social_facebook', 'bold_api_key', 'bold_secret_key'];
-            const data = keys.map(k => ({
-                configKey: k,
-                configValue: document.getElementById(`setting-${k}`).value,
-                configGroup: k.startsWith('social_') ? 'SOCIAL' : (k.startsWith('bold_') ? 'PAYMENT' : 'GENERAL')
-            }));
+            
+            const data = keys.map(k => {
+                let val = document.getElementById(`setting-${k}`).value;
+                
+                // Si es WhatsApp y tiene 10 dígitos (Colombia), agregar 57
+                if (k === 'social_whatsapp' || k === 'store_phone') {
+                    let clean = val.replace(/\D/g, ''); // Solo números
+                    if (clean.length === 10) val = '57' + clean;
+                    else if (clean.length === 12 && clean.startsWith('57')) val = clean;
+                }
+
+                return {
+                    configKey: k,
+                    configValue: val,
+                    configGroup: k.startsWith('social_') ? 'SOCIAL' : (k.startsWith('bold_') ? 'PAYMENT' : 'GENERAL')
+                };
+            });
+
             const r = await api('/settings/admin', 'PUT', data);
             if(r.ok) showToast('Configuración guardada correctamente');
         };
