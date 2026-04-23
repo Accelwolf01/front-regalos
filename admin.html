@@ -465,43 +465,53 @@
         }
 
         async function openProductModal(p = null) {
-            const [cR, sR] = await Promise.all([api('/admin/categories'), api('/admin/suppliers')]);
-            const cats = await cR.json();
-            const sups = await sR.json();
-            currentProductImages = p?.images || [];
-            document.getElementById('modal-content').innerHTML = `
-                <h3>${p ? 'Editar' : 'Nuevo'} Producto</h3>
-                <form id="p-form" style="margin-top:1rem">
-                    <div class="form-group"><label>Nombre</label><input type="text" id="p-name" value="${p?.name || ''}" required></div>
-                    <div class="form-group"><label>Descripción</label><textarea id="p-desc" required>${p?.description || ''}</textarea></div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                        <div class="form-group"><label>Precio</label><input type="number" id="p-price" value="${p?.price || ''}" required></div>
-                        <div class="form-group"><label>Costo</label><input type="number" id="p-cost" value="${p?.costPrice || ''}" required></div>
-                        <div class="form-group"><label>Categoría</label><select id="p-cat">${cats.map(c => `<option value="${c.id}" ${p?.category?.id === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div>
-                        <div class="form-group"><label>Stock</label><input type="number" id="p-stock" value="${p?.stock || ''}" required></div>
-                        <div class="form-group"><label>Proveedor</label><select id="p-sup">${sups.map(s => `<option value="${s.id}" ${p?.supplier?.id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}</select></div>
-                    </div>
-                    <div class="form-group"><label>Imágenes (Max 3)</label><input type="file" onchange="uploadImg(this)"><div id="previews" class="image-preview-container"></div></div>
-                    <button type="submit" class="btn-primary" style="width:100%;margin-top:10px">Guardar Cambios</button>
-                </form>`;
-            renderPreviews();
-            document.getElementById('modal-container').style.display = 'flex';
-            document.getElementById('p-form').onsubmit = async (e) => {
-                e.preventDefault();
-                const d = { 
-                    name: document.getElementById('p-name').value, 
-                    description: document.getElementById('p-desc').value,
-                    price: parseFloat(document.getElementById('p-price').value), 
-                    costPrice: parseFloat(document.getElementById('p-cost').value), 
-                    stock: parseInt(document.getElementById('p-stock').value), 
-                    isActive: true, 
-                    category: { id: parseInt(document.getElementById('p-cat').value) },
-                    supplier: { id: parseInt(document.getElementById('p-sup').value) },
-                    images: currentProductImages 
+            showToast(p ? 'Abriendo editor...' : 'Cargando datos...', 'info');
+            try {
+                const [cR, sR] = await Promise.all([api('/admin/categories'), api('/admin/suppliers')]);
+                if (!cR.ok || !sR.ok) throw new Error('No se pudieron cargar categorías o proveedores');
+                
+                const cats = await cR.json();
+                const sups = await sR.json();
+                currentProductImages = p?.images || [];
+                
+                document.getElementById('modal-content').innerHTML = `
+                    <h3>${p ? 'Editar' : 'Nuevo'} Producto</h3>
+                    <form id="p-form" style="margin-top:1rem">
+                        <div class="form-group"><label>Nombre</label><input type="text" id="p-name" value="${p?.name || ''}" required></div>
+                        <div class="form-group"><label>Descripción</label><textarea id="p-desc" required>${p?.description || ''}</textarea></div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                            <div class="form-group"><label>Precio</label><input type="number" id="p-price" value="${p?.price || ''}" required></div>
+                            <div class="form-group"><label>Costo</label><input type="number" id="p-cost" value="${p?.costPrice || ''}" required></div>
+                            <div class="form-group"><label>Categoría</label><select id="p-cat">${cats.map(c => `<option value="${c.id}" ${p?.category?.id === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select></div>
+                            <div class="form-group"><label>Stock</label><input type="number" id="p-stock" value="${p?.stock || ''}" required></div>
+                            <div class="form-group"><label>Proveedor</label><select id="p-sup">${sups.map(s => `<option value="${s.id}" ${p?.supplier?.id === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}</select></div>
+                        </div>
+                        <div class="form-group"><label>Imágenes (Max 3)</label><input type="file" onchange="uploadImg(this)"><div id="previews" class="image-preview-container"></div></div>
+                        <button type="submit" class="btn-primary" style="width:100%;margin-top:10px">Guardar Cambios</button>
+                    </form>`;
+                
+                renderPreviews();
+                document.getElementById('modal-container').style.display = 'flex';
+                document.getElementById('p-form').onsubmit = async (e) => {
+                    e.preventDefault();
+                    const d = { 
+                        name: document.getElementById('p-name').value, 
+                        description: document.getElementById('p-desc').value,
+                        price: parseFloat(document.getElementById('p-price').value), 
+                        costPrice: parseFloat(document.getElementById('p-cost').value), 
+                        stock: parseInt(document.getElementById('p-stock').value), 
+                        isActive: true, 
+                        category: { id: parseInt(document.getElementById('p-cat').value) },
+                        supplier: { id: parseInt(document.getElementById('p-sup').value) },
+                        images: currentProductImages 
+                    };
+                    const r = await api(p ? `/admin/products/${p.id}` : '/admin/products', p ? 'PUT' : 'POST', d);
+                    if(r.ok) { closeModal(); loadProducts(); showToast('Producto guardado'); } else { showToast('Error al guardar el producto', 'error'); }
                 };
-                const r = await api(p ? `/admin/products/${p.id}` : '/admin/products', p ? 'PUT' : 'POST', d);
-                if(r.ok) { closeModal(); loadProducts(); showToast('Producto guardado'); } else { showToast('Error al guardar el producto', 'error'); }
-            };
+            } catch (err) {
+                console.error(err);
+                showToast('Error de conexión con el servidor', 'error');
+            }
         }
 
         function uploadImg(input) {
@@ -732,21 +742,26 @@
 
         let allBanners = [];
         async function loadBanners() {
-            const r = await api('/settings/admin/banners');
-            if(!r.ok) return;
-            allBanners = await r.json();
-            document.getElementById('banners-container').innerHTML = allBanners.map((b, idx) => `
-                <div style="background:#f9f9f9; padding:10px; border-radius:15px; border:1px solid #eee;">
-                    <img src="${b.imageBase64}" style="width:100%; height:100px; object-fit:cover; border-radius:10px; margin-bottom:10px;">
-                    <div style="font-weight:600; font-size:0.9rem;">${b.title}</div>
-                    <div style="font-size:0.75rem; color:#666;">${b.subtitle || ''}</div>
-                    <div class="admin-actions" style="margin-top:10px;">
-                        <button onclick="openBannerModal(${idx})" class="btn-primary btn-sm">Editar</button>
-                        <button onclick="deleteBanner(${b.id})" class="btn-primary btn-sm" style="background:#ff4d4d">Borrar</button>
+            try {
+                const r = await api('/settings/admin/banners');
+                if(!r.ok) throw new Error('Error al cargar banners');
+                allBanners = await r.json();
+                document.getElementById('banners-container').innerHTML = allBanners.map((b, idx) => `
+                    <div style="background:#f9f9f9; padding:10px; border-radius:15px; border:1px solid #eee;">
+                        <img src="${b.imageBase64}" style="width:100%; height:100px; object-fit:cover; border-radius:10px; margin-bottom:10px;">
+                        <div style="font-weight:600; font-size:0.9rem;">${b.title}</div>
+                        <div style="font-size:0.75rem; color:#666;">${b.subtitle || ''}</div>
+                        <div class="admin-actions" style="margin-top:10px;">
+                            <button onclick="openBannerModal(${idx})" class="btn-primary btn-sm">Editar</button>
+                            <button onclick="deleteBanner(${b.id})" class="btn-primary btn-sm" style="background:#ff4d4d">Borrar</button>
+                        </div>
                     </div>
-                </div>
-            `).join('');
-            document.getElementById('add-banner-btn').disabled = allBanners.length >= 5;
+                `).join('');
+                document.getElementById('add-banner-btn').disabled = allBanners.length >= 5;
+            } catch (err) {
+                console.error(err);
+                showToast('Error al cargar banners del servidor', 'error');
+            }
         }
 
         async function openBannerModal(idx = null) {
