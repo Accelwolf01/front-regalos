@@ -196,8 +196,10 @@ function renderCartModal() {
     const totalValue = document.getElementById('cart-total-value');
     const totalContainer = document.getElementById('cart-total-container');
     const checkoutContainer = document.getElementById('checkout-form-container');
-    const clearBtn = document.getElementById('clear-cart-btn');
-
+    // Asignar eventos globales del modal
+    const closeBtn = document.getElementById('close-cart');
+    if(closeBtn) closeBtn.onclick = () => cartModal.style.display = 'none';
+    
     if (cart.length === 0) {
         itemsContainer.innerHTML = '<div style="text-align:center; padding:3rem 0;"><p style="font-size:2rem;">🛒</p><p>Tu carrito está vacío</p></div>';
         return;
@@ -225,8 +227,7 @@ function renderCartModal() {
         </div>
     `).join('');
 
-    clearBtn.onclick = () => { if(confirm('¿Vaciar todo el carrito?')) { cart = []; updateCart(); } };
-    document.getElementById('close-cart').onclick = () => cartModal.style.display = 'none';
+    if(clearBtn) clearBtn.onclick = () => { if(confirm('¿Vaciar todo el carrito?')) { cart = []; updateCart(); } };
     
     const showCheckoutBtn = document.getElementById('show-checkout-form');
     if(showCheckoutBtn) {
@@ -522,27 +523,44 @@ async function loadStoreSettings() {
         // Actualizar UI
         if (config.store_name) document.querySelectorAll('.logo span').forEach(el => el.innerText = config.store_name);
         
-        // Link WhatsApp
+        // Sección Contacto e Información
+        const addrEl = document.getElementById('contact-address');
+        if (addrEl && config.store_address) addrEl.innerText = config.store_address;
+        
+        const phoneEl = document.getElementById('contact-phone');
+        if (phoneEl && config.store_phone) phoneEl.innerText = config.store_phone;
+        
+        const emailEl = document.getElementById('contact-email');
+        if (emailEl && config.store_email) emailEl.innerText = config.store_email;
+
+        // Link WhatsApp Flotante
         const waLink = document.getElementById('whatsapp-link');
         if (waLink && config.social_whatsapp) {
             waLink.href = `https://wa.me/${config.social_whatsapp.replace(/\+/g, '').replace(/\s/g, '')}?text=Hola! Me interesa un regalo de su tienda.`;
         }
 
-        // Redes Sociales en Footer
+        // Redes Sociales en Sección Contacto y Footer
         if (config.social_instagram) {
-            const el = document.getElementById('footer-instagram');
-            if (el) el.href = config.social_instagram;
+            const elF = document.getElementById('footer-instagram');
+            const elC = document.getElementById('contact-instagram');
+            if (elF) elF.href = config.social_instagram;
+            if (elC) elC.href = config.social_instagram;
         }
         if (config.social_facebook) {
-            const el = document.getElementById('footer-facebook');
-            if (el) {
-                el.href = config.social_facebook;
-                el.style.display = 'inline'; // Mostrar si existe
+            const elF = document.getElementById('footer-facebook');
+            const elC = document.getElementById('contact-facebook');
+            if (elF) {
+                elF.href = config.social_facebook;
+                elF.style.display = 'inline';
+            }
+            if (elC) {
+                elC.href = config.social_facebook;
+                elC.style.display = 'flex';
             }
         }
         if (config.social_whatsapp) {
-            const el = document.getElementById('footer-whatsapp');
-            if (el) el.href = `https://wa.me/${config.social_whatsapp.replace(/\+/g, '').replace(/\s/g, '')}`;
+            const elF = document.getElementById('footer-whatsapp');
+            if (elF) elF.href = `https://wa.me/${config.social_whatsapp.replace(/\+/g, '').replace(/\s/g, '')}`;
         }
     } catch (err) {
         console.warn('No se pudieron cargar los ajustes de la tienda');
