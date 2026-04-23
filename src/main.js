@@ -560,7 +560,9 @@ async function loadStoreSettings() {
         }
         if (config.social_whatsapp) {
             const elF = document.getElementById('footer-whatsapp');
+            const elC = document.getElementById('contact-whatsapp');
             if (elF) elF.href = `https://wa.me/${config.social_whatsapp.replace(/\+/g, '').replace(/\s/g, '')}`;
+            if (elC) elC.href = `https://wa.me/${config.social_whatsapp.replace(/\+/g, '').replace(/\s/g, '')}`;
         }
     } catch (err) {
         console.warn('No se pudieron cargar los ajustes de la tienda');
